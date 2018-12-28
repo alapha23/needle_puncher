@@ -27,7 +27,7 @@ import sys
 import shutil
 from os.path import basename
 
-import os, signal, time, atexit
+import os, signal, time, atexit, copy
 
 import shlex, subprocess
 from UiArea import UiArea, Empty
@@ -41,7 +41,6 @@ global p_vncviewer  # vncviewer
 global p_vncdo      # vncdotool
 
 global master       # Tk()
-global caw          # canvas
 
 p_qemu = None       # initilized for cleanup
 p_vncdo = None
@@ -191,12 +190,14 @@ class Application(tk.Frame):
             # print("LEN: "+str(len(self.uiareas)))
             self.current_area = self.uiareas[0]
             self.current_area_id = 0
+            print("current_area_id "+str(self.current_area_id))
         else:
             for i in range(0, len(self.uiareas)-1):
                 # print("LEN: "+str(len(self.uiareas)))
                 if i == self.current_area_id:
                    self.current_area = self.uiareas[i+1]
                    self.current_area_id = i + 1
+                   print("current_area_id "+str(self.current_area_id))
                    return
 
     def resize(self, arg):
@@ -237,7 +238,10 @@ class Application(tk.Frame):
     def move(self, arg):
         width = self.width
         height = self.height
-        area = self.current_area.area
+        area = copy.deepcopy(self.current_area.area)
+        for i in range(0, len(self.uiareas)):
+            print("ID: "+str(i)+" ")
+            print(self.uiareas[i].area)
         incr = 5
 
         if arg.keysym == 'Right':
@@ -255,19 +259,14 @@ class Application(tk.Frame):
         self.current_area.updatearea(area)
 
     def addrect(self, args):
-        """
-        global rect, area, uiareas, needle
-        rect = len(needle['area'])
-        needle['area'].append({"height": 100, "width": 100,
-                               "xpos": 0, "ypos": 0, "type": "match"})
-        area = needle['area'][rect]
-        """
-        area = base_area
+        area = copy.deepcopy(base_area)
         self.uiareas.append(UiArea(self.caw, area))
         # Current focus on latest area
         self.current_area = self.uiareas[len(self.uiareas)-1]
         self.current_area_id = len(self.uiareas) - 1
         self.__selectarea()
+        # update position of new rect
+        self.current_area.updatearea(area)
 
     def savetext(self):
         self.filename = self.e_filename.get()
