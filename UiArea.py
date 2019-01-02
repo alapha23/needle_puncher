@@ -26,7 +26,7 @@ class UiArea:
 
     def _update_exclude(self, area):
         if area['type'] == 'exclude' and self.line is None:
-            self.line = w.create_line(
+            self.line = self.w.create_line(
                 area['xpos'],
                 area['ypos'] + area['height'], area['xpos'] + area['width'],
                 area['ypos'],

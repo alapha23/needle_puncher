@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from tkinter import Tk, Canvas, NW, Button, Entry
+from tkinter import Tk, Canvas, NW, Button, Entry, Label
 from PIL import Image, ImageTk
 import json
 import optparse
@@ -52,7 +52,6 @@ def cleanup():
         os.kill(p_vncdo.pid, signal.SIGTERM)
     if p_qemu:
         if options.pid:
-            print("Don't kill qemu since it's started outside")
             os.kill(p_qemu.pid, signal.SIGCONT)
         else:
             os.kill(p_qemu.pid, signal.SIGTERM)
@@ -61,82 +60,6 @@ def cleanup():
     print("Cleaned up!")
      
 atexit.register(cleanup)
-
-
-# open new or and png file
-#    needle = json.loads("""{
-#        "tags": [ "FIXME" ],
-#        "area": [ { "height": 100, "width": 100,
-#        "xpos": 0, "ypos": 0, "type": "match" } ]
-#    }""")
-
-#print(json.dumps(needle, sort_keys=True, indent=4, separators=(',', ': ')))
-
-"""
-for area in needle['area']:
-    # make sure we have ints
-    for s in ('xpos', 'ypos', 'width', 'height'):
-        area[s] = int(area[s])
-    uiareas.append(UiArea(w, area))
-
-rect = 0
-
-selectarea()
-incr = 5
-"""
-
-"""
-"""
-
-
-
-"""
-from UiArea import UiArea
-
-def delrect(arg):
-    global rect, area, uiareas, needle
-    if len(uiareas) <= 1:
-        return
-    del needle['area'][rect]
-    uiareas[rect].destroy()
-    a = []
-    for r in range(0, len(uiareas)):
-        if r == rect:
-            continue
-        a.append(uiareas[r])
-    uiareas = a
-    rect = rect % len(uiareas)
-    selectarea()
-
-
-def changetype(arg):
-    types = ('match', 'exclude', 'ocr')
-    global rect, area, uiareas, needle
-    area['type'] = types[(types.index(area['type']) + 1) % len(types)]
-    uiareas[rect].updatetype(area)
-
-def save_quit(arg):
-    global filename
-    if options.new:
-        from os import environ
-        if 'CASEDIR' not in environ:
-            environ['CASEDIR'] = 'distri/opensuse'
-        pat = environ['CASEDIR'] + "/needles/%s.%s"
-        shutil.copyfile(png, pat % (options.new, 'png'))
-        filename = pat % (options.new, 'json')
-    json.dump(needle, open(filename, 'w'), sort_keys=True, indent=4, separators=(',', ': '))
-    print("saved %s" % filename)
-    master.quit()
-
-master.bind('<space>', pause)
-master.bind('+', increment)
-master.bind('-', increment)
-master.bind('s', save_quit)
-master.bind('q', quit)
-master.bind('<Delete>', delrect)
-master.bind('t', changetype)
-"""
-
 
 import tkinter as tk
 class Application(tk.Frame):
@@ -149,14 +72,15 @@ class Application(tk.Frame):
         self.uiareas = []
         self.current_area = None
         self.current_area_id = 0
+        self.paused = 0
 
     def create_widgets(self):
         # activate tk window for capture button
-        self.b_capture = Button(self.master, text="Capture", command=self.capture)
-        self.b_capture.pack()
-        self.b_readfilename = Button(self.master, text='Save filename', command=self.savetext)
-        self.b_readfilename.pack()
+        self.b_capture = Button(self.master, text="Capture and Pause", command=self.capture)
+        self.b_resume = Button(self.master, text='Resume Qemu', command=self.cont_p)
         self.b_save = Button(self.master, text='Save needle', command=self.saveneedle)
+        self.b_capture.pack()
+        self.b_resume.pack()
         self.b_save.pack()
 
         self.e_filename = Entry(self.master, width=100)
@@ -167,16 +91,36 @@ class Application(tk.Frame):
         self.e_tag.pack()
         self.e_tag.insert(0, "tags splited with whitespace      e.g. test-zypper_up-confirm test-zypper_up-test")
 
-        self.master.title('p for stop and c for continue')
+        self.help_text = Label(master, text="1. Capture & Pause\n 2. <Insert> to add an area, arrow keys to move, shift-arrowkeys to resize, \n<Alt> to change area type, <Tab> switch between areas\n 3. enter filenames and tags\n4. click save needle or press <Esc> to quit without saving", width=400, justify='left')
+        self.help_text.pack()
 
-        self.width = 1024#photo.width()
-        self.height = 768#photo.height()
+        self.master.title('Press <Esc> to exit')
+
+        self.width = 1024
+        self.height = 768
 
         self.caw = Canvas(master, width=self.width, height=self.height)
         self.caw.pack()
          
-        self.__add_bings()
+        self.__add_bindings()
 
+    def delrect(self, arg=''):
+        num = len(self.uiareas) 
+        if num == 0:
+            return
+        self.uiareas[self.current_area_id].destroy()
+        if num == 1:
+            # Delete the only one rectangular
+            self.uiareas = []
+            self.current_area = None
+            self.current_area_id = 0
+        else:
+            # remove from all areas
+            del self.uiareas[self.current_area_id]
+            # set current_area to be latest
+            self.current_area_id = num - 1 
+            print("new current area id "+str(self.current_area_id))
+            self.current_area = self.uiareas[self.current_area_id]
 
     def switch(self, arg):
         """
@@ -186,8 +130,9 @@ class Application(tk.Frame):
         #     switch to area after current
         """
 
+        if len(self.uiareas) == 0:
+            return
         if len(self.uiareas)-1 == self.current_area_id:
-            # print("LEN: "+str(len(self.uiareas)))
             self.current_area = self.uiareas[0]
             self.current_area_id = 0
             print("current_area_id "+str(self.current_area_id))
@@ -199,6 +144,13 @@ class Application(tk.Frame):
                    self.current_area_id = i + 1
                    print("current_area_id "+str(self.current_area_id))
                    return
+
+    def changetype(self, arg=''):
+        if len(self.uiareas) == 0:
+            return
+        types = ('match', 'exclude', 'ocr')
+        self.current_area.area['type'] = types[(types.index(self.current_area.area['type']) + 1) % len(types)]
+        self.uiareas[self.current_area_id].updatetype(self.current_area.area)
 
     def resize(self, arg):
         width = self.width
@@ -228,20 +180,35 @@ class Application(tk.Frame):
         self.current_area.updatearea(area)
 
     def saveneedle(self):
-        print("TODO: Save needle")
+        # for the moment there should be __tmp__.png in current directory
+        # if not, alert `please capture needle`
+        try:
+            f = open("__tmp__.png", 'r')
+        except FileNotFoundError:
+            print("Alert: please capture needle")
+            return
+        # Rename __tmp__.png to be the needle filename
+        self.filename = self.e_filename.get()
+        self.tag = self.e_tag.get()
+        if self.__check_legal() == None:
+            print("Alert: illegal filename or tags")
+            return
+        subprocess.call(["cp", "__tmp__.png", self.filename])
+        self.__dumpjson()
+        # reset text in entry button
+        self.__savetext()
 
     def quit(self, args):
-        print("quit without saving")
-        # print(json.dumps(needle, sort_keys=True, indent=4, separators=(',', ': ')))
+        print("Quit without saving")
         master.quit()
 
     def move(self, arg):
         width = self.width
         height = self.height
         area = copy.deepcopy(self.current_area.area)
-        for i in range(0, len(self.uiareas)):
-            print("ID: "+str(i)+" ")
-            print(self.uiareas[i].area)
+        #for i in range(0, len(self.uiareas)):
+        #    print("ID: "+str(i)+" ")
+        #    print(self.uiareas[i].area)
         incr = 5
 
         if arg.keysym == 'Right':
@@ -268,16 +235,13 @@ class Application(tk.Frame):
         # update position of new rect
         self.current_area.updatearea(area)
 
-    def savetext(self):
-        self.filename = self.e_filename.get()
-        print("Filename: "+self.filename+".png")
-        self.tag = self.e_tag.get()
-        print("tag: "+self.tag)
-        self.e_filename.delete(0, len(self.filename))
-        self.e_tag.delete(0, len(self.tag))
-        self.__check_legal()
-
     def capture(self):
+        # return if already paused
+        if self.paused == 1:
+            return
+        else:
+            self.paused = 1
+        # else
         # capture
         self.__capture()
         # stop qemu instance
@@ -288,17 +252,20 @@ class Application(tk.Frame):
         self.bg = self.caw.create_image(0, 0, anchor=NW, image=photo)
         self.caw.draw()
         self.master.update()
-        # qemu instance resume
-        self.cont_p('')
 
-    def pause_p(self, arg):
+    def pause_p(self, arg=''):
         print("PAUSE")
         # pause vm
         os.kill(p_qemu.pid, signal.SIGSTOP)
 
-    def cont_p(self, arg):
+    def cont_p(self, arg=''):
         print("CONTINUED")
+        self.paused = 0
         os.kill(p_qemu.pid, signal.SIGCONT)
+
+    def __savetext(self):
+        self.e_filename.delete(0, len(self.filename))
+        self.e_tag.delete(0, len(self.tag))
 
     def __capture(self):
         print('CAPTURE')
@@ -310,9 +277,40 @@ class Application(tk.Frame):
         p_vncdo = subprocess.Popen(capture_args)
         p_vncdo.wait()
 
+    def __dumpjson(self):
+        #    needle = json.loads("""{
+        #        "tags": [ "EXAMPLE" ],
+        #        "area": [ { "height": 100, "width": 100,
+        #        "xpos": 0, "ypos": 0, "type": "match" } ]
+        #    }""")
+
+        # parse tags, possibly have multiple tags
+        needle = {}
+        # add tags
+        tags = self.tag.split()
+        needle['tags'] = tags 
+        # add areas
+        if len(self.uiareas) == 0:
+            print("Alert: no area selected")
+            return
+        areas = []
+        for i in self.uiareas:
+            areas.append(i.area)
+        needle['area'] = areas
+
+        # Dump json to filename.json
+        f = open(self.filename[:len(self.filename)-4]+".json", "w")
+        print(json.dumps(needle, sort_keys=True, indent=4, separators=(',', ': ')))
+        f.write(json.dumps(needle, sort_keys=True, indent=4, separators=(',', ': ')))
+        f.close()
+
     def __check_legal(self):
         # check if filename and tags are legal
-        print("Checks passed on tags and filename")
+        if len(self.tag) == 0:
+            return None
+        if len(self.filename) == 0:
+            return None
+        return 1
 
     def __selectarea(self):
         for r in range(0, len(self.uiareas)):
@@ -321,11 +319,10 @@ class Application(tk.Frame):
             #    color = "cyan"
             self.uiareas[r].setcolor(color)
 
-    def __add_bings(self):
-        self.master.bind('p', self.pause_p)
-        self.master.bind('c', self.cont_p)        
-        self.master.bind('<Insert>', self.addrect)
+    def __add_bindings(self):
         self.master.bind('<Escape>', self.quit)
+        self.master.bind('<Alt_L>', self.changetype)
+        self.master.bind('<Insert>', self.addrect)
         self.master.bind('<Up>', self.move)
         self.master.bind('<Down>', self.move)
         self.master.bind('<Left>', self.move)
@@ -335,7 +332,7 @@ class Application(tk.Frame):
         self.master.bind('<Shift-Left>', self.resize)
         self.master.bind('<Shift-Right>', self.resize)        
         self.master.bind('<Tab>', self.switch)
-
+        self.master.bind('<Delete>', self.delrect)
 
 if __name__ == '__main__':
     parser = optparse.OptionParser(usage=help_text)
