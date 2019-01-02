@@ -1,0 +1,16 @@
+{
+    "area": [
+        {
+            "height": 80,
+            "margin": 100,
+            "type": "match",
+            "width": 80,
+            "xpos": 330,
+            "ypos": 230
+        }
+    ],
+    "tags": [
+        "tag1",
+        "tag2"
+    ]
+}

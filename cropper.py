@@ -57,6 +57,8 @@ def cleanup():
             os.kill(p_qemu.pid, signal.SIGTERM)
     if p_vncviewer:
         os.kill(p_vncviewer.pid, signal.SIGTERM)
+    # delete __tmp__.png
+    subprocess.call(["rm", "__tmp__.png"])
     print("Cleaned up!")
      
 atexit.register(cleanup)
@@ -193,7 +195,7 @@ class Application(tk.Frame):
         if self.__check_legal() == None:
             print("Alert: illegal filename or tags")
             return
-        subprocess.call(["cp", "__tmp__.png", self.filename])
+        subprocess.call(["cp", "__tmp__.png", "needles/"+self.filename])
         self.__dumpjson()
         # reset text in entry button
         self.__savetext()
@@ -266,6 +268,8 @@ class Application(tk.Frame):
     def __savetext(self):
         self.e_filename.delete(0, len(self.filename))
         self.e_tag.delete(0, len(self.tag))
+        self.tag = ''
+        self.filename = ''
 
     def __capture(self):
         print('CAPTURE')
@@ -299,7 +303,7 @@ class Application(tk.Frame):
         needle['area'] = areas
 
         # Dump json to filename.json
-        f = open(self.filename[:len(self.filename)-4]+".json", "w")
+        f = open("needles/"+self.filename[:len(self.filename)-4]+".json", "w")
         print(json.dumps(needle, sort_keys=True, indent=4, separators=(',', ': ')))
         f.write(json.dumps(needle, sort_keys=True, indent=4, separators=(',', ': ')))
         f.close()
@@ -387,8 +391,8 @@ if __name__ == '__main__':
       
     # sleep for qemu to start at port
     time.sleep(1)
-    err_vnc = open("vncviewer_stderr.log", "wb")
-    out_vnc = open("vncviewer_stdout.log", "wb")
+    err_vnc = open("log/vncviewer_stderr.log", "wb")
+    out_vnc = open("log/vncviewer_stdout.log", "wb")
     port_str = str(port)
     if port < 10:
         port_str = "0"+port_str

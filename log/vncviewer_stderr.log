@@ -1,0 +1,18 @@
+
+TigerVNC Viewer 64-bit v1.9.0
+Copyright (C) 1999-2018 TigerVNC Team and many others (see README.rst)
+See http://www.tigervnc.org for information on TigerVNC.
+
+Wed Jan  2 04:52:02 2019
+ DecodeManager: Detected 4 CPU core(s)
+ DecodeManager: Creating 4 decoder thread(s)
+ CConn:       connected to host localhost port 5901
+ CConnection: Server supports RFB protocol version 3.8
+ CConnection: Using RFB protocol version 3.8
+ CConnection: Choosing security type None(1)
+ CConn:       Using pixel format depth 24 (32bpp) little-endian rgb888
+ CConn:       Using Tight encoding
+
+Wed Jan  2 04:52:22 2019
+ main:        Termination signal 15 has been received. TigerVNC Viewer will now
+              exit.
