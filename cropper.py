@@ -120,7 +120,7 @@ class Application(tk.Frame):
             # remove from all areas
             del self.uiareas[self.current_area_id]
             # set current_area to be latest
-            self.current_area_id = num - 1 
+            self.current_area_id = num - 2
             print("new current area id "+str(self.current_area_id))
             self.current_area = self.uiareas[self.current_area_id]
 
