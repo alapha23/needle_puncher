@@ -87,7 +87,7 @@ class Application(tk.Frame):
 
         self.e_filename = Entry(self.master, width=100)
         self.e_filename.pack()
-        self.e_filename.insert(0, "filename without .png suffix      e.g. zypper_up_yesno-20141115")
+        self.e_filename.insert(0, "filename with .png suffix      e.g. zypper_up_yesno-20141115")
 
         self.e_tag = Entry(self.master, width=100)
         self.e_tag.pack()
@@ -303,8 +303,13 @@ class Application(tk.Frame):
         needle['area'] = areas
 
         # Dump json to filename.json
-        f = open("needles/"+self.filename[:len(self.filename)-4]+".json", "w")
-        print(json.dumps(needle, sort_keys=True, indent=4, separators=(',', ': ')))
+        json_filename = ''
+        if '.png' in self.filename:
+            json_filename = "needles/"+self.filename[:len(self.filename)-4]+".json"
+        else:
+            json_filename = "needles/"+self.filename+".json"
+        f = open(json_filename, "w")
+        # print(json.dumps(needle, sort_keys=True, indent=4, separators=(',', ': ')))
         f.write(json.dumps(needle, sort_keys=True, indent=4, separators=(',', ': ')))
         f.close()
 
