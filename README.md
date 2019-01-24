@@ -3,6 +3,9 @@ Needle Puncher for openQA
 
 Summary
 ---
+This program helps saving a bunch of needles for openQA testing. It requires you to start a qemu instance with vnc.
+
+And it is inspired and largely influenced by https://github.com/os-autoinst/os-autoinst/blob/master/crop.py
 
 Installation
 ---
